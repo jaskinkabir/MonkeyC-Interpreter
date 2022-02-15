@@ -1,0 +1,34 @@
+MonkeyC language
+
+Features:
+    Keywords: ooh, aah, hoo, haa, hooh, haah, ooohooh, woo, waa, eee 
+
+    Variable definition: Implicit types:
+        var: hoo
+        definition(=): ooh
+         
+    Basic syntax:
+        print: wee
+        if: ooaah
+        else: waa
+        for: hee
+        input: eeeaah
+    Builtins:
+        length: haahoowaa
+    
+    Logical operators:
+        ==: oohooh
+        not: woa
+        or: eee
+        and: oohwee
+        >: aah
+        <: haa
+
+    Numerical operators:
+        +: eeeooh
+        -: oohee
+        /: haahee
+        *: heehaa
+        %: hoowaa
+
+

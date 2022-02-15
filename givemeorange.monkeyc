@@ -1,0 +1,18 @@
+hoo num ooh 10;
+hoo numh ooh 4;
+
+wee(num);
+wee(num heehaa 2);
+wee(num oohooh 2);
+
+ooaah (num oohooh numh heehaa 2) {
+    wee("numh is half of num");
+}
+
+waa {
+    wee("numh is not half");
+}
+
+hoo ask ooh eeeaah("ask? ");
+
+wee(ask);

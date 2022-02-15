@@ -1,0 +1,24 @@
+hoo wantBanana ooh eeeaah("Monke want banana?");
+
+ooaah (woa wantBanana oohooh "yes" oohwee woa wantBanana oohooh "y" oohwee woa wantBanana oohooh "Yes") {
+    wee("AAH AAAAH! YOU NOT TRUE MONKEY! TRUE MONKEY NEED BANANA! OOOH AAH!");
+}
+
+waa {
+    wee("Banana cost 3 rock.");
+    hoo rockBal ooh eeeaah("How many rock monke have?");
+
+    ooaah (rockBal aah 3 eee rockBal oohooh 3) {
+        wee("Here is banana");
+        wee("[insert image of banana]");
+
+        rockBal ooh rockBal oohee 3;
+
+        wee("Monke now have this many rock");
+        wee(rockBal);
+    }
+
+    waa {
+        wee("OOH OOH! MONKEY NEED GET MORE ROCK TO BUY BANANA OOH AAH!");
+    }
+}
