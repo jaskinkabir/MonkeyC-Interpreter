@@ -122,6 +122,8 @@ def splitWordLines(script, codeBlock=1):
     for line in lines:
         if len(line)==1 and line[0]=="":
             lines.remove(line)
+        elif line[0][0]=='#':
+            lines.remove(line)
         for word in line:
             if not word:
                 line.remove(word)

@@ -3,6 +3,9 @@ MonkeyC language
 Features:
     Keywords: ooh, aah, hoo, haa, hooh, haah, ooohooh, woo, waa, eee 
 
+    Comments:
+        Begin comment line with '#', must end comment lines with ;
+
     Variable definition: Implicit types:
         var: hoo
         definition(=): ooh
