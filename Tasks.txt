@@ -3,5 +3,3 @@ Tasks:
     -While loops
     -Functions
         >Define variables with return value
-
-    -Comments
