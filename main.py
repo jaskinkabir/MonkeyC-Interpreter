@@ -1,5 +1,7 @@
 import sys
 
+lineNo=1
+
 def interpret(script):
     global lastIf
     lines=splitWordLines(script)
@@ -13,75 +15,95 @@ def interpret(script):
     
     
 
+def exception(msg, lineNo=lineNo, codeBlock=1):
+    raise Exception(f"Exception in line: {lineNo}, block {codeBlock}: {msg}")
 
 
-def splitWordLines(script):
+def splitWordLines(script, codeBlock=1):
+    global lineNo
+    
     lines=[[""]]    
     readingString=False
     readingExp=False
     readingBlock=False
+    charb=""
     curlNest=0
+    parenNest=0
     expNest=0
     i=0
-    while(i<len(script)):
+    
+    for char in script:
         lineNo=len(lines)
-        char=script[i]
-        if char == "\n" or char == "":
+        
+        if readingBlock and not (readingExp or readingString):
+            if char == "{":
+                curlNest+=1 
+            elif char == "}":
+                curlNest-=1
+                if curlNest==0: #If final curly, add new line
+                    readingBlock=False
+                    lines[-1][-1]+=char
+                    lines.append([""])
+                    i+=1
+                    continue
+        
+        elif readingExp and not (readingString or readingBlock):
+            if char=="(":
+                parenNest+=1
+            elif char == ")":
+                parenNest-=1
+                if parenNest==0:
+                    readingExp=False
+                    lines[-1][-1]+=char
+                    lines.append([""])
+                    i+=1
+                    continue
+        
+        
+        elif char == "\n" or char == "" and not (readingExp or readingBlock or readingString): #Ignore line breaks/ blanks
             i+=1
             continue
         
-        elif char==" " and not readingString and not readingExp and not readingBlock:
-            if i==0 or i==len(script)-1:
+        elif char==" " and not (readingExp or readingBlock or readingString):
+            if len(lines[-1][0])==0: #If line starts with space, ignore first space
                 i+=1
                 continue
-            elif script[i+1]==" " or script[i-1]==" ": #Ignore successive spaces
+            elif i==len(script)-1: #If final char is space, break
+                break
+            elif script[i-1]==" ": #Ignore successive spaces
+                i+1
+                continue
+            else:
+                lines[-1].append("") # Add new word after single space
                 i+=1
                 continue
-            lines[-1].append("") # Add a new word after a single space
-            i+=1
-            continue        
-        
-        elif char == ";" and not readingBlock: # Add a new line after ;
+            
+        elif char == ";" and not (readingBlock or readingString or readingExp): # Add a new line after ;
             lines.append([""])
             i+=1
             continue
         
-        elif char == "{":
-            if curlNest==0:
-                lines.append([""])
-            lines[-1][-1]+=char
-            curlNest+=1
-            i+=1
-            char=""
-            for i in range(i,len(script)):
-                charb = script[i]
-                
-                if charb == "{":
-                    curlNest+=1
-                    lines[-1][-1]+=charb
-                
-                elif charb == "}":
-                    curlNest-=1
-                    lines[-1][-1]+=charb
-                    if curlNest==0:
-                        lines.append([""])
-                        charb=""
-                        break
-                else:
-                    lines[-1][-1]+=charb
-            
-        elif char == '"': # Start reading string after "
-            readingString=not readingString
+        elif char == "{" and not (readingExp or readingBlock or readingString):
+            readingBlock=True
+            curlNest=1
+            lines.append([""])
+        elif char == "}" and not (readingExp or readingString):
+            if not readingBlock:
+                exception("Expected '{' before '}'", codeBlock=codeBlock)
+
+        elif char == '"':
+            readingString = not readingString
+        
         elif char == "(":
             readingExp=True
-        elif char == ")":
+            parenNest=1
+        elif char==")":
             if not readingExp:
-                raise Exception(f"Exception in line {lineNo}: Expected '(' before ')'")
-            readingExp=False
+                exception("Expected '(' before ')'", codeBlock=codeBlock)
+            
+        lines[-1][-1]+=char
+        i+=1
         
-        if char!="":
-            lines[-1][-1]+=char
-        i+=1    
     
     if readingString:
         raise Exception("String never closed")
@@ -105,7 +127,6 @@ def parse(lines):
     parsingIf=False
     parsingElse=False
     ifRes=None
-    global lastIf
     for l in range(len(lines)):
         line=lines[l]
         if not line or not line[0]: #Remove empty lines
@@ -176,7 +197,7 @@ def parse(lines):
                     topLevel.globalVars[line[i+1]]=input(prompt[1:-1]+" ")
                     
                 else:
-                    topLevel.globalVars[line[1]]=line[3]
+                    topLevel.globalVars[line[1]]=monkEval(line[3:])
                 i+=4
             elif word[:3]=="wee":
                 wee(word) 
@@ -227,7 +248,10 @@ def monkEval(exp):
             if isNumber(word):
                 evalStr+=localVars[word]+" "
             elif isinstance(word, str):
-                evalStr+=f"'{word}' "
+                if (word[0]=='"' and word [-1]=='"') or (word[0]=="'" and word[-1]=="'"):
+                    evalStr+=f"{word} "
+                else:
+                    evalStr+=f"'{word}' "
             else:
                 evalStr+=localVars[word]+" "
         except KeyError:
@@ -236,9 +260,12 @@ def monkEval(exp):
             elif word in numericalOperators:
                 evalStr += numericalOperators[word]+" "
             elif isNumber(word):
-                evalStr+=word+" "
-            elif word[0]=='"' and word[-1]=='"':
-                evalStr+=word+" "
+                evalStr+=str(word)+" "
+            elif isinstance(word, str):
+                if (word[0]=='"' and word [-1]=='"') or (word[0]=="'" and word[-1]=="'"):
+                    evalStr+=f"{word} "
+                else:
+                    evalStr+=f"'{word}' "
             else:
                 raise Exception(f"Exception in line {lineNo}: Variable {word} not defined")
     #print(f"evalStr: {evalStr}")

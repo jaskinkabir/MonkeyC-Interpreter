@@ -1,21 +1,21 @@
-hoo wantBanana ooh "y ";
+hoo wantBanana ooh eeeaah("Monke want banana?");
 
 ooaah (wantBanana oohooh "yes" eee wantBanana oohooh "y") {
-    hoo bananabal ooh 4;
+    hoo bananabal ooh eeeaah("How many rock monke have?");
 
-    oohaah (bananabal aah 3 eee bananabal ohooh 3) {
+    ooaah (bananabal aah 3 eee bananabal oohooh 3) {
         wee("Here is banana");
         bananabal ooh bananabal oohee 3;
-        wee("You now have this many banana");
+        wee("Monke now have this many banana");
         wee(bananabal);
     }
 
     waa {
-        wee("OOH OOH! MONKEY MUST GET MORE ROCK TO BUY BANANA OOH AAH!");
+        wee("OOH OOH! MONKEY MUST GET MORE ROCK TO BUY BANANA! OOH AAH!");
     }
 }
 
 waa {
-    wee("AAH AAAAH! MONKEY MUST WANT BANANA OOOH AAH!");
+    wee("AAH AAAAH! TRUE MONKEY MUST WANT BANANA! OOOH AAH!");
 }
 
