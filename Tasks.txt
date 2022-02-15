@@ -3,3 +3,5 @@ Tasks:
     -While loops
     -Functions
         >Define variables with return value
+    -Improve error catching
+        >Figure out line number for code blocks

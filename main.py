@@ -1,7 +1,5 @@
 import sys
 
-lineNo=1
-
 def interpret(script):
     global lastIf
     lines=splitWordLines(script)
@@ -15,40 +13,55 @@ def interpret(script):
     
     
 
-def exception(msg, lineNo=lineNo, codeBlock=1):
-    raise Exception(f"Exception in line: {lineNo}, block {codeBlock}: {msg}")
+def syntaxError(msg, lineNo):
+    raise Exception(f"Syntax error in line: {lineNo}: {msg}")
 
 
-def splitWordLines(script, codeBlock=1):
-    global lineNo
+def splitWordLines(script, startingLine=1):
     scripLen=len(script)
-    
-    lines=[[""]]    
+    lines=[[""]]
+    lineNo=startingLine    
     readingString=False
     readingExp=False
     readingBlock=False
+    readingComment=False
     curlNest=0
     parenNest=0
     i=0
+    startingCurls=[]
+    startingExps=[]
     
-    for char in script:
-        lineNo=len(lines)
+    for i in range(scripLen):
+        char=script[i]
         
-        if char == "" and not line[-1][0]:
-            lines.remove(line)
-            i+=1
+        if char == "\n":
+            lineNo+=1
+            if readingComment:
+                readingComment=False
+                lines[-1]=[""]
+                continue
+            elif not (readingExp or readingBlock or readingString):
+                continue
+        
+        elif char == '#' and lines[-1][0]=="":
+            readingComment=True
             continue
         
-        if readingBlock and not (readingExp or readingString):
+        elif readingComment:
+            continue
+        
+        elif readingBlock and not (readingExp or readingString):
             if char == "{":
-                curlNest+=1 
+                curlNest+=1
+                startingCurls.append(lineNo) 
             elif char == "}":
                 curlNest-=1
+                startingCurls.pop()
                 if curlNest==0 and not i==scripLen-1: #If final curly, add new line
                     readingBlock=False
                     lines[-1][-1]+=char
                     lines.append([""])
-                    i+=1
+                    
                     continue
         
         elif readingExp and not (readingString or readingBlock):
@@ -59,18 +72,10 @@ def splitWordLines(script, codeBlock=1):
                 if parenNest==0:
                     readingExp=False
                     lines[-1][-1]+=char
-                    #lines.append([""])
-                    i+=1
                     continue
-        
-        
-        elif char == "\n" or char == "" and not (readingExp or readingBlock or readingString): #Ignore line breaks/ blanks
-            i+=1
-            continue
         
         elif char==" " and not (readingExp or readingBlock or readingString):
             if len(lines[-1][0])==0: #If line starts with space, ignore first space
-                i+=1
                 continue
             elif i==scripLen-1: #If final char is space, break
                 break
@@ -78,61 +83,62 @@ def splitWordLines(script, codeBlock=1):
                 i+1
                 continue
             elif script[i+1]=="{":
-                i+=1
                 continue
             else:
                 lines[-1].append("") # Add new word after single space
-                i+=1
                 continue
             
         elif char == ";" and not (readingBlock or readingString or readingExp): # Add a new line after ;
-            i+=1
-            lines.append([""])
             
+            lines.append([""])
             continue
         
         elif char == "{" and not (readingExp or readingBlock or readingString):
+            startingCurls.append(lineNo)
             readingBlock=True
             curlNest=1
             lines.append([""])
         elif char == "}" and not (readingExp or readingString):
             if not readingBlock:
-                exception("Expected '{' before '}'", codeBlock=codeBlock)
+                syntaxError("Expected '{' before '}'", lineNo)
+            startingCurls.pop()
 
         elif char == '"':
+            startingString=lineNo
             readingString = not readingString
         
         elif char == "(":
             readingExp=True
             parenNest=1
+            startingExp=lineNo
         elif char==")":
             if not readingExp:
-                exception("Expected '(' before ')'", codeBlock=codeBlock)
+                syntaxError("Expected '(' before ')'", lineNo)
             
         lines[-1][-1]+=char
-        i+=1
+        
         
     
     if readingString:
-        raise Exception("String never closed")
+        syntaxError("String never closed", startingString)
     
-    if readingExp:
-        raise Exception("() Expression never closed")
+    elif readingExp:
+        syntaxError("() Expression never closed", startingExp)
     
-    for line in lines:
-        if len(line)==1 and line[0]=="":
-            lines.remove(line)
-        elif line[0][0]=='#':
-            lines.remove(line)
-        for word in line:
-            if not word:
-                line.remove(word)
+    elif readingBlock:
+        if len(startingCurls)==1:
+            syntaxError("{} Expression never closed", startingCurls[0])
+        elif len(startingCurls)==2:
+            syntaxError("{} Expression never closed", startingCurls[1])
+        else:
+            syntaxError("{} Expression never closed", startingCurls[-(curlNest+1)])
+        
+    
+    lines.pop()
 
     return lines
 
 def parse(lines):
-    global lineNo
-    lineNo=1
     parsingIf=False
     parsingElse=False
     ifRes=None
@@ -141,9 +147,6 @@ def parse(lines):
         if not line or not line[0]: #Remove empty lines
             lines.pop(l)
             l-=1
-            continue
-        
-        elif line[0][0]=="#": #Ignore comments
             continue
         
         elif line[0]=="ooaah":
@@ -159,9 +162,9 @@ def parse(lines):
         
         elif line[0]=="waa":
             if topLevel.lastIf is None:
-                raise Exception("Exception in line {lineNo}: Excpected if statement before else")
+                raise Exception("Exception in line {topLevel.lineNo}: Excpected if statement before else")
             if parsingElse:
-                raise Exception("Exception in line {lineNo}: Close else statement before another else")
+                raise Exception("Exception in line {topLevel.lineNo}: Close else statement before another else")
             parsingElse=True
             continue
         
@@ -180,41 +183,44 @@ def parse(lines):
                 continue
             
             if word=="hoo" and i==0:
-                if line[2]!="ooh":
-                    raise Exception("Exception in line {lineNo}: Expected 'ooh' after variable definition")
-                elif line[3][:7]=="eeeaah(":
-                    try:
-                        if topLevel.globalVars[line[3][7:-1]][0]!='"' and topLevel.globalVars[line[i+3][6:-1]][-1]!='"':
-                            raise Exception(f"Exception in line {lineNo}: eeeaah takes type: string")
-                        else:
-                            prompt=topLevel.globalVars[line[i+3][7:-1]]
-                    except KeyError:
-                        prompt=line[3][7:-1]
-                        if prompt[0]!='"' and prompt[-1]!='"':
-                            raise Exception(f"Exception in line {lineNo}: eeeaah takes type: string")
-                    topLevel.globalVars[line[i+1]]=input(prompt[1:-1]+" ")
-                    
-                else:
-                    topLevel.globalVars[line[1]]=monkEval(line[3:])
+                parseInput(line)
                 i+=4
             elif word[:3]=="wee":
                 wee(word) 
                 pass
             elif word in topLevel.globalVars and i==0:
                 if line[1]!="ooh":
-                    raise Exception(f"Exception in line {lineNo}: Expected 'ooh' after variable definition")
+                    raise Exception(f"Exception in line {topLevel.lineNo}: Expected 'ooh' after variable definition")
                 topLevel.globalVars[word]=monkEval(line[2:])
         
         
-        lineNo+=1        
+        topLevel.lineNo+=1        
     #print(topLevel.globalVars)
 
 def parseIf(line):
     if line[1][0]!='(' or line[1][-1]!=')':
-        raise Exception("Exception in line {lineNo}: Invalid if syntax")
+        raise Exception("Exception in line {topLevel.lineNo}: Invalid if syntax")
     lastIf=monkEval(line[1][1:-1])
     topLevel.lastIf=lastIf
     return lastIf
+
+def parseInput(line):
+    if line[2]!="ooh":
+        raise Exception("Exception in line {topLevel.lineNo}: Expected 'ooh' after variable definition")
+    elif line[3][:7]=="eeeaah(":
+        try:
+            if topLevel.globalVars[line[3][7:-1]][0]!='"' and topLevel.globalVars[line[3][6:-1]][-1]!='"':
+                raise Exception(f"Exception in line {topLevel.lineNo}: eeeaah takes type: string")
+            else:
+                prompt=topLevel.globalVars[line[3][7:-1]]
+        except KeyError:
+            prompt=line[3][7:-1]
+            if prompt[0]!='"' and prompt[-1]!='"':
+                raise Exception(f"Exception in line {topLevel.lineNo}: eeeaah takes type: string")
+        topLevel.globalVars[line[1]]=input(prompt[1:-1]+" ")
+        
+    else:
+        topLevel.globalVars[line[1]]=monkEval(line[3:])
 
 def wee(word):
     printedWord=word[4:-1]
@@ -225,7 +231,7 @@ def wee(word):
             printedWord=topLevel.globalVars[printedWord]
         except KeyError:
             if " " not in printedWord:            
-                raise Exception(f"Exception in line {lineNo}: Variable {printedWord} not defined")
+                raise Exception(f"Exception in line {topLevel.lineNo}: Variable {printedWord} not defined")
             print(monkEval(printedWord))
             return
         if isinstance(printedWord, str):
@@ -272,7 +278,7 @@ def monkEval(exp):
                 else:
                     evalStr+=f"'{word}' "
             else:
-                raise Exception(f"Exception in line {lineNo}: Variable {word} not defined")
+                raise Exception(f"Exception in line {topLevel.lineNo}: Variable {word} not defined")
     #print(f"evalStr: {evalStr}")
     #print (eval(evalStr))
     return eval(evalStr)
@@ -308,6 +314,7 @@ with open(sys.argv[1]) as file:
 
 class TopLevel:
     def __init__(self):
+        self.lineNo=1
         self.lastIf=None
         self.globalVars={}
     
