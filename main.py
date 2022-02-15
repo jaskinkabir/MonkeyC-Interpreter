@@ -21,26 +21,30 @@ def exception(msg, lineNo=lineNo, codeBlock=1):
 
 def splitWordLines(script, codeBlock=1):
     global lineNo
+    scripLen=len(script)
     
     lines=[[""]]    
     readingString=False
     readingExp=False
     readingBlock=False
-    charb=""
     curlNest=0
     parenNest=0
-    expNest=0
     i=0
     
     for char in script:
         lineNo=len(lines)
+        
+        if char == "" and not line[-1][0]:
+            lines.remove(line)
+            i+=1
+            continue
         
         if readingBlock and not (readingExp or readingString):
             if char == "{":
                 curlNest+=1 
             elif char == "}":
                 curlNest-=1
-                if curlNest==0: #If final curly, add new line
+                if curlNest==0 and not i==scripLen-1: #If final curly, add new line
                     readingBlock=False
                     lines[-1][-1]+=char
                     lines.append([""])
@@ -55,7 +59,7 @@ def splitWordLines(script, codeBlock=1):
                 if parenNest==0:
                     readingExp=False
                     lines[-1][-1]+=char
-                    lines.append([""])
+                    #lines.append([""])
                     i+=1
                     continue
         
@@ -68,10 +72,13 @@ def splitWordLines(script, codeBlock=1):
             if len(lines[-1][0])==0: #If line starts with space, ignore first space
                 i+=1
                 continue
-            elif i==len(script)-1: #If final char is space, break
+            elif i==scripLen-1: #If final char is space, break
                 break
             elif script[i-1]==" ": #Ignore successive spaces
                 i+1
+                continue
+            elif script[i+1]=="{":
+                i+=1
                 continue
             else:
                 lines[-1].append("") # Add new word after single space
@@ -79,8 +86,9 @@ def splitWordLines(script, codeBlock=1):
                 continue
             
         elif char == ";" and not (readingBlock or readingString or readingExp): # Add a new line after ;
-            lines.append([""])
             i+=1
+            lines.append([""])
+            
             continue
         
         elif char == "{" and not (readingExp or readingBlock or readingString):
@@ -112,7 +120,7 @@ def splitWordLines(script, codeBlock=1):
         raise Exception("() Expression never closed")
     
     for line in lines:
-        if not line or not line[0]:
+        if len(line)==1 and line[0]=="":
             lines.remove(line)
         for word in line:
             if not word:
@@ -123,7 +131,6 @@ def splitWordLines(script, codeBlock=1):
 def parse(lines):
     global lineNo
     lineNo=1
-    parsingCodeBlock=False
     parsingIf=False
     parsingElse=False
     ifRes=None
@@ -138,19 +145,13 @@ def parse(lines):
             continue
         
         elif line[0]=="ooaah":
-            parsingCodeBlock=True
             parsingIf=True
-            
-            if line[1][0]!='(' or line[1][-1]!=')':
-                raise Exception("Exception in line {lineNo}: Invalid if syntax")
-            ifRes = monkEval(line[1][1:-1])
-            topLevel.lastIf=ifRes
+            ifRes=parseIf(line)
             continue
         
         elif ifRes and parsingIf:
             interpret(line[0][1:-1])
             parsingIf=False
-            parsingCodeBlock=False
             topLevel.lastIf=ifRes
             continue
         
@@ -159,21 +160,17 @@ def parse(lines):
                 raise Exception("Exception in line {lineNo}: Excpected if statement before else")
             if parsingElse:
                 raise Exception("Exception in line {lineNo}: Close else statement before another else")
-            parsingCodeBlock=True
             parsingElse=True
             continue
         
         elif not ifRes and parsingElse:
             interpret(line[0][1:-1])
             parsingElse=False
-            parsingCodeBlock=False
             continue
         
         
-        parsingDefinition=False
         for i in range(len(line)):
             word = line[i]
-            
             
             if word == "":
                 line.pop(i)
@@ -181,7 +178,6 @@ def parse(lines):
                 continue
             
             if word=="hoo" and i==0:
-                parsingDefinition=True
                 if line[2]!="ooh":
                     raise Exception("Exception in line {lineNo}: Expected 'ooh' after variable definition")
                 elif line[3][:7]=="eeeaah(":
@@ -210,7 +206,14 @@ def parse(lines):
         
         lineNo+=1        
     #print(topLevel.globalVars)
-    
+
+def parseIf(line):
+    if line[1][0]!='(' or line[1][-1]!=')':
+        raise Exception("Exception in line {lineNo}: Invalid if syntax")
+    lastIf=monkEval(line[1][1:-1])
+    topLevel.lastIf=lastIf
+    return lastIf
+
 def wee(word):
     printedWord=word[4:-1]
     if printedWord[0]=='"' and printedWord[-1]=='"':

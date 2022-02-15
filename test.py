@@ -1,1 +1,3 @@
-print(eval('\'"y"\' == "yes" or \'"y"\' == "y" '))
+line=[""]
+
+print(bool(line))
