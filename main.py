@@ -1,12 +1,13 @@
+from re import L
 import sys
 
-def interpret(script):
+def interpret(script, startingLine=1):
     global lastIf
     lines=splitWordLines(script)
     
     lastIf=None
     
-    parse(lines)
+    parse(lines, startingLine)
     #print("\nFinished parsing")
     
     #print(lines)
@@ -36,12 +37,15 @@ def splitWordLines(script, startingLine=1):
         
         if char == "\n":
             lineNo+=1
+            
             if readingComment:
                 readingComment=False
                 lines[-1]=[""]
                 continue
             elif not (readingExp or readingBlock or readingString):
                 continue
+            
+            
         
         elif char == '#' and lines[-1][0]=="":
             readingComment=True
@@ -57,9 +61,10 @@ def splitWordLines(script, startingLine=1):
             elif char == "}":
                 curlNest-=1
                 startingCurls.pop()
-                if curlNest==0 and not i==scripLen-1: #If final curly, add new line
+                if curlNest==0: #If final curly, add new line
                     readingBlock=False
                     lines[-1][-1]+=char
+                    lines[-1].append(lineNo)
                     lines.append([""])
                     
                     continue
@@ -89,23 +94,26 @@ def splitWordLines(script, startingLine=1):
                 continue
             
         elif char == ";" and not (readingBlock or readingString or readingExp): # Add a new line after ;
-            
-            lines.append([""])
+            lines[-1].append(lineNo)
+            lines.append([""])            
             continue
         
         elif char == "{" and not (readingExp or readingBlock or readingString):
             startingCurls.append(lineNo)
             readingBlock=True
             curlNest=1
+            lines[-1].append(lineNo)
             lines.append([""])
         elif char == "}" and not (readingExp or readingString):
             if not readingBlock:
                 syntaxError("Expected '{' before '}'", lineNo)
+            readingBlock=False
             startingCurls.pop()
 
         elif char == '"':
             startingString=lineNo
             readingString = not readingString
+            startingString=lineNo
         
         elif char == "(":
             readingExp=True
@@ -138,12 +146,21 @@ def splitWordLines(script, startingLine=1):
 
     return lines
 
-def parse(lines):
+def parse(lines, startingLine=1):
     parsingIf=False
     parsingElse=False
     ifRes=None
+    lineNo=startingLine
+    noLines=len(lines)
+        
+        
     for l in range(len(lines)):
         line=lines[l]
+        
+        if line[0]=="{":
+            lineNo
+        lineNo=line[-1]+startingLine-1
+        
         if not line or not line[0]: #Remove empty lines
             lines.pop(l)
             l-=1
@@ -155,16 +172,16 @@ def parse(lines):
             continue
         
         elif ifRes and parsingIf:
-            interpret(line[0][1:-1])
+            interpret(line[0][1:-1], startingLine=lineNo)
             parsingIf=False
             topLevel.lastIf=ifRes
             continue
         
         elif line[0]=="waa":
             if topLevel.lastIf is None:
-                raise Exception("Exception in line {topLevel.lineNo}: Excpected if statement before else")
+                raise Exception(f"Exception in line {lineNo}: Excpected if statement before else")
             if parsingElse:
-                raise Exception("Exception in line {topLevel.lineNo}: Close else statement before another else")
+                raise Exception(f"Exception in line {lineNo}: Close else statement before another else")
             parsingElse=True
             continue
         
@@ -177,24 +194,26 @@ def parse(lines):
         for i in range(len(line)):
             word = line[i]
             
+            if isinstance(word, int):
+                continue
+            
             if word == "":
                 line.pop(i)
                 i-=1
                 continue
             
             if word=="hoo" and i==0:
-                parseInput(line)
+                parseInput(line, lineNo)
                 i+=4
             elif word[:3]=="wee":
                 wee(word) 
-                pass
             elif word in topLevel.globalVars and i==0:
                 if line[1]!="ooh":
-                    raise Exception(f"Exception in line {topLevel.lineNo}: Expected 'ooh' after variable definition")
+                    raise Exception(f"Exception in line {lineNo}: Expected 'ooh' after variable redefinition")
                 topLevel.globalVars[word]=monkEval(line[2:])
         
         
-        topLevel.lineNo+=1        
+        lineNo+=1
     #print(topLevel.globalVars)
 
 def parseIf(line):
@@ -204,19 +223,19 @@ def parseIf(line):
     topLevel.lastIf=lastIf
     return lastIf
 
-def parseInput(line):
+def parseInput(line, lineNo):
     if line[2]!="ooh":
-        raise Exception("Exception in line {topLevel.lineNo}: Expected 'ooh' after variable definition")
+        raise syntaxError(" Expected 'ooh' after variable definition", lineNo)
     elif line[3][:7]=="eeeaah(":
         try:
             if topLevel.globalVars[line[3][7:-1]][0]!='"' and topLevel.globalVars[line[3][6:-1]][-1]!='"':
-                raise Exception(f"Exception in line {topLevel.lineNo}: eeeaah takes type: string")
+                raise syntaxError(": eeeaah takes type: string", lineNo)
             else:
                 prompt=topLevel.globalVars[line[3][7:-1]]
         except KeyError:
             prompt=line[3][7:-1]
             if prompt[0]!='"' and prompt[-1]!='"':
-                raise Exception(f"Exception in line {topLevel.lineNo}: eeeaah takes type: string")
+                syntaxError("eeeaah takes type: string", lineNo)
         topLevel.globalVars[line[1]]=input(prompt[1:-1]+" ")
         
     else:
