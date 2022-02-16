@@ -57,7 +57,7 @@ def splitWordLines(script, startingLine=1):
             elif char == "}":
                 curlNest-=1
                 startingCurls.pop()
-                if curlNest==0 and not i==scripLen-1: #If final curly, add new line
+                if curlNest==0: #If final curly, add new line
                     readingBlock=False
                     lines[-1][-1]+=char
                     lines.append([""])
@@ -162,9 +162,9 @@ def parse(lines):
         
         elif line[0]=="waa":
             if topLevel.lastIf is None:
-                raise Exception("Exception in line {topLevel.lineNo}: Excpected if statement before else")
+                raise Exception(" Expected if statement before else")
             if parsingElse:
-                raise Exception("Exception in line {topLevel.lineNo}: Close else statement before another else")
+                raise Exception(" Close else statement before another else")
             parsingElse=True
             continue
         
@@ -190,7 +190,7 @@ def parse(lines):
                 pass
             elif word in topLevel.globalVars and i==0:
                 if line[1]!="ooh":
-                    raise Exception(f"Exception in line {topLevel.lineNo}: Expected 'ooh' after variable definition")
+                    raise Exception(f" Expected 'ooh' after variable definition")
                 topLevel.globalVars[word]=monkEval(line[2:])
         
         
@@ -199,24 +199,24 @@ def parse(lines):
 
 def parseIf(line):
     if line[1][0]!='(' or line[1][-1]!=')':
-        raise Exception("Exception in line {topLevel.lineNo}: Invalid if syntax")
+        raise Exception(" Invalid if syntax")
     lastIf=monkEval(line[1][1:-1])
     topLevel.lastIf=lastIf
     return lastIf
 
 def parseInput(line):
     if line[2]!="ooh":
-        raise Exception("Exception in line {topLevel.lineNo}: Expected 'ooh' after variable definition")
+        raise Exception(" Expected 'ooh' after variable definition")
     elif line[3][:7]=="eeeaah(":
         try:
             if topLevel.globalVars[line[3][7:-1]][0]!='"' and topLevel.globalVars[line[3][6:-1]][-1]!='"':
-                raise Exception(f"Exception in line {topLevel.lineNo}: eeeaah takes type: string")
+                raise Exception(f" eeeaah takes type: string")
             else:
                 prompt=topLevel.globalVars[line[3][7:-1]]
         except KeyError:
             prompt=line[3][7:-1]
             if prompt[0]!='"' and prompt[-1]!='"':
-                raise Exception(f"Exception in line {topLevel.lineNo}: eeeaah takes type: string")
+                raise Exception(f" eeeaah takes type: string")
         topLevel.globalVars[line[1]]=input(prompt[1:-1]+" ")
         
     else:
@@ -231,7 +231,7 @@ def wee(word):
             printedWord=topLevel.globalVars[printedWord]
         except KeyError:
             if " " not in printedWord:            
-                raise Exception(f"Exception in line {topLevel.lineNo}: Variable {printedWord} not defined")
+                raise Exception(f" Variable {printedWord} not defined")
             print(monkEval(printedWord))
             return
         if isinstance(printedWord, str):
@@ -247,17 +247,14 @@ def monkEval(exp):
     evalStr=""
     localVars={}
     
-    #print(exp)
-    
     for i in range(len(expWords)):
         word=expWords[i]
-        #print(word)
         
         try:
             localVars[word]=topLevel.globalVars[word]
             word=localVars[word]
             if isNumber(word):
-                evalStr+=localVars[word]+" "
+                evalStr+=str(localVars[word])+" "
             elif isinstance(word, str):
                 if (word[0]=='"' and word [-1]=='"') or (word[0]=="'" and word[-1]=="'"):
                     evalStr+=f"{word} "
@@ -278,7 +275,7 @@ def monkEval(exp):
                 else:
                     evalStr+=f"'{word}' "
             else:
-                raise Exception(f"Exception in line {topLevel.lineNo}: Variable {word} not defined")
+                raise Exception(f" Variable {word} not defined")
     #print(f"evalStr: {evalStr}")
     #print (eval(evalStr))
     return eval(evalStr)

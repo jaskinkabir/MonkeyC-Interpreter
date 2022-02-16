@@ -1,3 +1,3 @@
 line=[""]
 
-print(bool(line))
+print(int(True))

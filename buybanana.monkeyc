@@ -2,6 +2,7 @@
 hoo wantBanana ooh eeeaah("Monke want banana?");
 
 ooaah (wantBanana oohooh "yes" eee wantBanana oohooh "y") {
+    wee("Banana cost 3 rock");
     hoo bananabal ooh eeeaah("How many rock monke have?");
 
     ooaah (bananabal aah 3 eee bananabal oohooh 3) {
@@ -9,11 +10,12 @@ ooaah (wantBanana oohooh "yes" eee wantBanana oohooh "y") {
         bananabal ooh bananabal oohee 3;
         wee("Monke now have this many banana");
         wee(bananabal);
-    
+    }
 
     waa {
         wee("OOH OOH! MONKEY MUST GET MORE ROCK TO BUY BANANA! OOH AAH!");
     }
+}
 
 
 waa {
