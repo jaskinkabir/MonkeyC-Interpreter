@@ -9,11 +9,12 @@ ooaah (wantBanana oohooh "yes" eee wantBanana oohooh "y") {
         bananabal ooh bananabal oohee 3;
         wee("Monke now have this many banana");
         wee(bananabal);
-    
+    }
 
     waa {
         wee("OOH OOH! MONKEY MUST GET MORE ROCK TO BUY BANANA! OOH AAH!");
     }
+}
 
 
 waa {
